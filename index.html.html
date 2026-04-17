@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGS Circuit 1 — Non-Official Viewership</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS — 여기서 색상/폰트 수정
+═══════════════════════════════════════════════ */
+:root {
+  --bg:           #0a0d14;
+  --surface:      #111520;
+  --surface2:     #161c2c;
+  --border:       rgba(255,255,255,.08);
+  --text:         #e8eaf0;
+  --muted:        #6b7594;
+  --accent:       #f5a623;   /* 주황 — 강조색 */
+  --accent2:      #e8436a;   /* 빨강 — 경고색 */
+  --c-s1:         #6366f1;   /* Series 1 색 */
+  --c-s2:         #a78bfa;   /* Series 2 색 */
+  --c-s3:         #f5a623;   /* Series 3 색 */
+  --c-co:         #38bdf8;   /* Co-Streamer 색 */
+  --c-un:         #fb923c;   /* Unofficial 색 */
+  --c-apac:       #4ade80;   /* APAC 색 */
+  --c-emea:       #f472b6;   /* EMEA 색 */
+  --c-kr:         #94a3b8;   /* KR 색 */
+  --radius:       8px;
+  --radius-lg:    12px;
+  --font:         'Inter', -apple-system, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+button { cursor: pointer; font-family: var(--font); }
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════ */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,13,20,.95); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; padding: 0 28px;
+  overflow-x: auto;
+}
+.nav-btn {
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 14px 18px; white-space: nowrap;
+  transition: color .2s, border-color .2s;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   PAGES
+═══════════════════════════════════════════════ */
+.page { display: none; max-width: 1280px; margin: 0 auto; padding: 44px 28px 80px; }
+.page.on { display: block; }
+
+/* ═══════════════════════════════════════════════
+   PAGE HEADER
+═══════════════════════════════════════════════ */
+.eyebrow { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.page-title { font-size: clamp(28px, 4vw, 48px); font-weight: 600; line-height: 1; margin-bottom: 12px; }
+.page-title span { color: var(--accent); }
+.page-sub { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.page-warn { font-size: 11px; color: var(--accent2); margin-bottom: 20px; }
+.divider { height: 1px; background: linear-gradient(90deg, var(--accent), transparent); margin: 18px 0 28px; }
+
+/* ═══════════════════════════════════════════════
+   SECTION HEADER
+═══════════════════════════════════════════════ */
+.sh { display: flex; align-items: center; gap: 10px; margin: 28px 0 14px; }
+.sh-title { font-size: 15px; font-weight: 500; }
+.pill {
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 2px 8px; border-radius: var(--radius);
+  background: rgba(245,166,35,.1); color: var(--accent);
+  border: 0.5px solid rgba(245,166,35,.3);
+}
+.pill.blue { background: rgba(56,189,248,.1); color: #38bdf8; border-color: rgba(56,189,248,.3); }
+
+/* ═══════════════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════════════ */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px 18px; border-top: 3px solid var(--accent);
+}
+.kpi-card:nth-child(2) { border-top-color: var(--accent2); }
+.kpi-card:nth-child(3) { border-top-color: var(--c-co); }
+.kpi-card:nth-child(4) { border-top-color: #a78bfa; }
+.kpi-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.kpi-value { font-size: 24px; font-weight: 600; }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ═══════════════════════════════════════════════
+   SERIES SUMMARY CARDS
+═══════════════════════════════════════════════ */
+.series-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+.series-card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: 18px 20px; border-top: 3px solid var(--c-s1);
+}
+.series-card.s2 { border-top-color: var(--c-s2); }
+.series-card.s3 { border-top-color: var(--c-s3); }
+.series-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.series-value { font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+.series-detail { font-size: 11px; color: var(--muted); }
+
+/* ═══════════════════════════════════════════════
+   INSIGHT CARDS
+═══════════════════════════════════════════════ */
+.insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.insight-grid.cols2 { grid-template-columns: repeat(2, 1fr); }
+.insight-card {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 14px 16px; border-left: 3px solid var(--accent);
+}
+.insight-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; font-weight: 500; }
+.insight-body { font-size: 12px; line-height: 1.6; color: var(--muted); }
+.insight-body strong { color: var(--text); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════════════ */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card { background: var(--surface); border-radius: var(--radius); padding: 16px; }
+.chart-card.with-note { border-radius: var(--radius) var(--radius) 0 0; }
+.chart-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap.tall { height: 280px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════
+   CHANNEL NOTE (차트 아래 채널 명단)
+═══════════════════════════════════════════════ */
+.ch-note {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.ch-note-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.ch-note-title { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.ch-note-toggle { font-size: 10px; color: var(--muted); }
+.ch-note-body { display: none; margin-top: 8px; }
+.ch-note-body.open { display: block; }
+.ch-stage-block { margin-bottom: 10px; }
+.ch-stage-name { font-size: 11px; font-weight: 500; margin-bottom: 4px; }
+.ch-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.tag-co { font-size: 10px; padding: 1px 6px; border-radius: var(--radius); background: rgba(56,189,248,.1); color: #0ea5e9; }
+.tag-un { font-size: 10px; padding: 1px 6px; border-radius: var(--radius); background: rgba(251,146,60,.1); color: #f97316; }
+
+/* ═══════════════════════════════════════════════
+   TABLES
+═══════════════════════════════════════════════ */
+.table-wrap { background: var(--surface); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+thead th {
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); padding: 9px 10px; text-align: right;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+thead th:first-child { text-align: left; }
+tbody td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+tbody td:first-child { text-align: left; color: var(--muted); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,.02); }
+tbody tr.avg-row td { background: rgba(245,166,35,.05); font-weight: 500; }
+.num { font-weight: 500; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: var(--radius); font-size: 10px; font-weight: 500; }
+.badge-apac { background: rgba(74,222,128,.12); color: #16a34a; }
+.badge-emea { background: rgba(244,114,182,.12); color: #be185d; }
+.badge-kr   { background: rgba(148,163,184,.12); color: #64748b; }
+
+/* ═══════════════════════════════════════════════
+   APPENDIX TABS
+═══════════════════════════════════════════════ */
+.ap-tabs {
+  display: flex; gap: 0; overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+.ap-tab {
+  background: var(--surface); border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted); font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase; padding: 9px 14px; white-space: nowrap;
+  transition: color .2s, border-color .2s;
+}
+.ap-tab:hover { color: var(--text); }
+.ap-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+.ap-table-wrap {
+  background: var(--surface);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .kpi-grid, .series-grid, .insight-grid, .chart-grid { grid-template-columns: 1fr; }
+  .insight-grid.cols2 { grid-template-columns: 1fr; }
+  .page { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAVIGATION ───────────────────────────────── -->
+<nav class="nav">
+  <button class="nav-btn on"  onclick="showPage('ov')">전체 요약</button>
+  <button class="nav-btn"     onclick="showPage('fl')">전 스테이지 흐름</button>
+  <button class="nav-btn"     onclick="showPage('s1')">Series 1</button>
+  <button class="nav-btn"     onclick="showPage('s2')">Series 2</button>
+  <button class="nav-btn"     onclick="showPage('s3')">Series 3</button>
+  <button class="nav-btn"     onclick="showPage('ap')">Appendix</button>
+</nav>
+
+<!-- ════════════════════════════════════════════════
+     PAGE: 전체 요약
+════════════════════════════════════════════════ -->
+<div class="page on" id="page-ov">
+  <div class="eyebrow">PGS Circuit 1 · Non-Official Viewership</div>
+  <h1 class="page-title">Circuit 1 <span>전체 요약</span></h1>
+  <p class="page-sub">Co-Streamer (계약) + Unofficial (자발) · Player's POV 제외 · Official 제외</p>
+  <p class="page-warn">⚠ S1·S2 Final 2일 평균 · S3 Final 3일 평균 (D3 Nimo TV 5채널 포함)</p>
+  <div class="divider"></div>
+
+  <!-- Series 요약 배지 -->
+  <div class="series-grid">
+    <div class="series-card">
+      <div class="series-label">Series 1 · Final 일평균</div>
+      <div class="series-value" style="color:var(--c-s1)">71,606</div>
+      <div class="series-detail">Co-Str 38,622 · Un 32,984</div>
+      <div class="series-detail" style="margin-top:3px;opacity:.6">Group · Winners · Survival · Final D1·D2</div>
+    </div>
+    <div class="series-card s2">
+      <div class="series-label">Series 2 · Final 일평균</div>
+      <div class="series-value" style="color:var(--c-s2)">81,330</div>
+      <div class="series-detail">Co-Str 61,502 · Un 19,828</div>
+      <div class="series-detail" style="margin-top:3px;opacity:.6">Winners · Survival · Final D1·D2</div>
+    </div>
+    <div class="series-card s3">
+      <div class="series-label">Series 3 · Final 일평균</div>
+      <div class="series-value" style="color:var(--c-s3)">123,855</div>
+      <div class="series-detail">Co-Str 99,992 · Un 23,862</div>
+      <div class="series-detail" style="margin-top:3px;opacity:.6">Survival · Final D1·D2·D3</div>
+    </div>
+  </div>
+
+  <!-- 인사이트 -->
+  <div class="sh"><div class="sh-title">핵심 인사이트</div><div class="pill">Circuit 1</div></div>
+  <div class="insight-grid">
+    <div class="insight-card" style="border-left-color:#4ade80">
+      <div class="insight-label" style="color:#16a34a">S3 역대 최고</div>
+      <div class="insight-body">Final 일평균 Peak <strong>123,855</strong>으로 S1·S2 추월. D3 Peak <strong>201,661</strong> — Circuit 1 최고. CCV 85,537도 역대 최고.</div>
+    </div>
+    <div class="insight-card" style="border-left-color:#38bdf8">
+      <div class="insight-label" style="color:#0284c7">루틴화 — 개근 21채널</div>
+      <div class="insight-body">3시리즈 Final 모두 참여 Co-Str <strong>21개</strong>. EMEA 핵심 5인 개근. 포맷 신뢰도 증명.</div>
+    </div>
+    <div class="insight-card" style="border-left-color:#f5a623">
+      <div class="insight-label" style="color:#b45309">요일 효과 입증</div>
+      <div class="insight-body">S3 D1(금) 69,847 → D2(토) 100,057 → D3(일) <strong>201,661</strong>. 상승분 98.2%가 기존 채널 뷰 증가.</div>
+    </div>
+    <div class="insight-card" style="border-left-color:#f472b6">
+      <div class="insight-label" style="color:#be185d">APAC 집중</div>
+      <div class="insight-body">S3 D3 APAC Peak 189,002 (전체 93.7%). Nimo TV 5채널 합류. VN Co-Str 다변화 필요.</div>
+    </div>
+    <div class="insight-card" style="border-left-color:#fb923c">
+      <div class="insight-label" style="color:#c2410c">Unofficial = 팀 성적 연동</div>
+      <div class="insight-body">devzxje·Nhiim — Anyone's Legend 하위권으로 하락. Co-Str은 팀 무관 안정 유지.</div>
+    </div>
+    <div class="insight-card" style="border-left-color:#f87171">
+      <div class="insight-label" style="color:#b91c1c">Rambo 효과 (S1)</div>
+      <div class="insight-body">S1 Survival Peak의 61.1%가 Lâm Đình Xưa 단 한 채널. Rambo 제외 시 S1 ≈ S3.</div>
+    </div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="sh"><div class="sh-title">Final Stage 일평균 비교</div><div class="pill">S1·S2·S3</div></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-co)"></div>Co-Streamer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-un)"></div>Unofficial</div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card"><div class="chart-label">Peak Viewers</div><div class="chart-wrap"><canvas id="c_ov_peak"></canvas></div></div>
+    <div class="chart-card"><div class="chart-label">Average CCV</div><div class="chart-wrap"><canvas id="c_ov_ccv"></canvas></div></div>
+  </div>
+
+  <div class="sh"><div class="sh-title">지역별 Final 일평균 추이</div><div class="pill">APAC·EMEA·KR</div></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-apac)"></div>APAC</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-emea)"></div>EMEA/AM</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-kr)"></div>KR</div>
+    <div class="legend-item"><div class="legend-dot" style="background:transparent;border:1px dashed rgba(255,255,255,.5)"></div>전체 합산</div>
+  </div>
+  <div class="chart-card" style="margin-bottom:20px"><div class="chart-label">Peak Viewers 지역별 S1→S2→S3</div><div class="chart-wrap tall"><canvas id="c_ov_reg"></canvas></div></div>
+
+  <!-- 전체 수치 테이블 -->
+  <div class="sh"><div class="sh-title">전체 수치 요약</div><div class="pill blue">Complete</div></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Series</th><th>Stage</th><th>Co-Str Peak</th><th>Co-Str CCV</th><th>Un Peak</th><th>Un CCV</th><th>Total Peak</th><th>APAC</th><th>EMEA/AM</th></tr></thead>
+      <tbody id="ov_tbl"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PAGE: 전 스테이지 흐름
+════════════════════════════════════════════════ -->
+<div class="page" id="page-fl">
+  <div class="eyebrow">PGS Circuit 1</div>
+  <h1 class="page-title">전 스테이지 <span>흐름 비교</span></h1>
+  <p class="page-sub">S1·S2·S3 모든 스테이지 · Co-Streamer + Unofficial</p>
+  <div class="divider"></div>
+
+  <div class="sh"><div class="sh-title">Peak Viewers 흐름</div><div class="pill">전 스테이지</div></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-s1)"></div>S1</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-s2)"></div>S2</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-s3)"></div>S3</div>
+  </div>
+  <div class="chart-card" style="margin-bottom:14px"><div class="chart-label">Peak Viewers — 스테이지별 전체 합산</div><div class="chart-wrap tall"><canvas id="c_fl_peak"></canvas></div></div>
+  <div class="chart-card" style="margin-bottom:24px"><div class="chart-label">Average CCV — 스테이지별</div><div class="chart-wrap"><canvas id="c_fl_ccv"></canvas></div></div>
+
+  <div class="sh"><div class="sh-title">카테고리별 Final 일평균</div><div class="pill blue">Co-Str vs Un</div></div>
+  <div class="chart-grid">
+    <div class="chart-card"><div class="chart-label">Co-Streamer Peak</div><div class="chart-wrap"><canvas id="c_fl_co"></canvas></div></div>
+    <div class="chart-card"><div class="chart-label">Unofficial Peak</div><div class="chart-wrap"><canvas id="c_fl_un"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PAGE: SERIES 1
+════════════════════════════════════════════════ -->
+<div class="page" id="page-s1">
+  <div class="eyebrow">PGS Circuit 1 · Series 1</div>
+  <h1 class="page-title">Series 1 <span style="color:var(--c-s1)">Recap</span></h1>
+  <p class="page-sub">Group Stage · Winners Stage · Survival Stage · Final D1 · Final D2</p>
+  <div class="divider"></div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Final 일평균 Peak</div><div class="kpi-value">71,606</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final Co-Str Peak</div><div class="kpi-value">38,622</div><div class="kpi-sub">24채널</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final Unofficial Peak</div><div class="kpi-value">32,984</div><div class="kpi-sub">48채널</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final APAC Peak</div><div class="kpi-value">40,660</div><div class="kpi-sub">EMEA 29,795</div></div>
+  </div>
+  <div class="sh"><div class="sh-title">스테이지별 흐름</div><div class="pill">S1</div></div>
+  <div class="chart-grid">
+    <div>
+      <div class="chart-card with-note"><div class="chart-label">Peak Viewers</div><div class="chart-wrap"><canvas id="c_s1_peak"></canvas></div></div>
+      <div class="ch-note"><div class="ch-note-hdr" onclick="toggleNote(this)"><span class="ch-note-title">📋 스테이지별 참여 채널</span><span class="ch-note-toggle">▾ 펼치기</span></div><div class="ch-note-body" id="s1_ch_peak_body"></div></div>
+    </div>
+    <div>
+      <div class="chart-card with-note"><div class="chart-label">Average CCV</div><div class="chart-wrap"><canvas id="c_s1_ccv"></canvas></div></div>
+      <div class="ch-note"><div class="ch-note-hdr" onclick="toggleNote(this)"><span class="ch-note-title">📋 스테이지별 참여 채널</span><span class="ch-note-toggle">▾ 펼치기</span></div><div class="ch-note-body" id="s1_ch_ccv_body"></div></div>
+    </div>
+  </div>
+  <div class="sh"><div class="sh-title">수치 요약</div><div class="pill blue">S1</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Co Peak</th><th>Co CCV</th><th>Un Peak</th><th>Un CCV</th><th>Total</th><th>APAC</th><th>EMEA/AM</th></tr></thead><tbody id="s1_tbl"></tbody></table></div>
+  <div class="sh"><div class="sh-title">인사이트</div><div class="pill blue">S1</div></div>
+  <div class="insight-grid cols2">
+    <div class="insight-card" style="border-left-color:#f87171"><div class="insight-label" style="color:#b91c1c">Rambo 효과</div><div class="insight-body">Survival Peak 31,744 중 24,760이 Lâm Đình Xưa(78.1%). 단일 채널 의존도 극단적. Rambo 미참여 스테이지에서 Co-Str 급락.</div></div>
+    <div class="insight-card" style="border-left-color:#fb923c"><div class="insight-label" style="color:#c2410c">ccinextt — 미계약 1위</div><div class="insight-body">Final D1 Unofficial 1위 ccinextt(TR) Peak 38,708. 미계약 채널이 전체 수치 주도. Future Partner 검토 필요.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PAGE: SERIES 2
+════════════════════════════════════════════════ -->
+<div class="page" id="page-s2">
+  <div class="eyebrow">PGS Circuit 1 · Series 2</div>
+  <h1 class="page-title">Series 2 <span style="color:var(--c-s2)">Recap</span></h1>
+  <p class="page-sub">Winners Stage · Survival Stage · Final D1 · Final D2</p>
+  <div class="divider"></div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Final 일평균 Peak</div><div class="kpi-value">81,330</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final Co-Str Peak</div><div class="kpi-value">61,502</div><div class="kpi-sub">22채널</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final Unofficial Peak</div><div class="kpi-value">19,828</div><div class="kpi-sub">50채널</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final APAC Peak</div><div class="kpi-value">66,101</div><div class="kpi-sub">EMEA 13,616</div></div>
+  </div>
+  <div class="sh"><div class="sh-title">스테이지별 흐름</div><div class="pill">S2</div></div>
+  <div class="chart-grid">
+    <div>
+      <div class="chart-card with-note"><div class="chart-label">Peak Viewers</div><div class="chart-wrap"><canvas id="c_s2_peak"></canvas></div></div>
+      <div class="ch-note"><div class="ch-note-hdr" onclick="toggleNote(this)"><span class="ch-note-title">📋 스테이지별 참여 채널</span><span class="ch-note-toggle">▾ 펼치기</span></div><div class="ch-note-body" id="s2_ch_peak_body"></div></div>
+    </div>
+    <div>
+      <div class="chart-card with-note"><div class="chart-label">Average CCV</div><div class="chart-wrap"><canvas id="c_s2_ccv"></canvas></div></div>
+      <div class="ch-note"><div class="ch-note-hdr" onclick="toggleNote(this)"><span class="ch-note-title">📋 스테이지별 참여 채널</span><span class="ch-note-toggle">▾ 펼치기</span></div><div class="ch-note-body" id="s2_ch_ccv_body"></div></div>
+    </div>
+  </div>
+  <div class="sh"><div class="sh-title">수치 요약</div><div class="pill blue">S2</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Co Peak</th><th>Co CCV</th><th>Un Peak</th><th>Un CCV</th><th>Total</th><th>APAC</th><th>EMEA/AM</th></tr></thead><tbody id="s2_tbl"></tbody></table></div>
+  <div class="sh"><div class="sh-title">인사이트</div><div class="pill blue">S2</div></div>
+  <div class="insight-grid cols2">
+    <div class="insight-card" style="border-left-color:#f87171"><div class="insight-label" style="color:#b91c1c">Survival 급락</div><div class="insight-body">Rambo·TuI TEN BO 동시 미참여 → Peak 11,778, APAC 1,888. APAC 주력 채널 부재의 영향.</div></div>
+    <div class="insight-card" style="border-left-color:#4ade80"><div class="insight-label" style="color:#16a34a">TuI TEN BO 합류</div><div class="insight-body">Final D2 Peak 96,973. TuI TEN BO + Rambo 동시 활동 시 APAC 82,277로 압도적.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PAGE: SERIES 3
+════════════════════════════════════════════════ -->
+<div class="page" id="page-s3">
+  <div class="eyebrow">PGS Circuit 1 · Series 3</div>
+  <h1 class="page-title">Series 3 <span style="color:var(--c-s3)">Recap</span></h1>
+  <p class="page-sub">Survival Stage · Grand Finals D1 · D2 · D3</p>
+  <div class="divider"></div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Final 일평균 Peak</div><div class="kpi-value">123,855</div></div>
+    <div class="kpi-card"><div class="kpi-label">D3 Peak (최고)</div><div class="kpi-value">201,661</div><div class="kpi-sub">Circuit 1 최고</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final Co-Str Peak</div><div class="kpi-value">99,992</div><div class="kpi-sub">27채널</div></div>
+    <div class="kpi-card"><div class="kpi-label">Final APAC Peak</div><div class="kpi-value">111,612</div><div class="kpi-sub">EMEA 10,828</div></div>
+  </div>
+  <div class="sh"><div class="sh-title">Grand Finals 데일리 흐름</div><div class="pill">D1·D2·D3</div></div>
+  <div class="chart-grid">
+    <div>
+      <div class="chart-card with-note"><div class="chart-label">Peak Viewers</div><div class="chart-wrap"><canvas id="c_s3_peak"></canvas></div></div>
+      <div class="ch-note"><div class="ch-note-hdr" onclick="toggleNote(this)"><span class="ch-note-title">📋 일별 참여 채널</span><span class="ch-note-toggle">▾ 펼치기</span></div><div class="ch-note-body" id="s3_ch_peak_body"></div></div>
+    </div>
+    <div>
+      <div class="chart-card with-note"><div class="chart-label">Average CCV</div><div class="chart-wrap"><canvas id="c_s3_ccv"></canvas></div></div>
+      <div class="ch-note"><div class="ch-note-hdr" onclick="toggleNote(this)"><span class="ch-note-title">📋 일별 참여 채널</span><span class="ch-note-toggle">▾ 펼치기</span></div><div class="ch-note-body" id="s3_ch_ccv_body"></div></div>
+    </div>
+  </div>
+  <div class="sh"><div class="sh-title">수치 요약</div><div class="pill blue">S3</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Co Peak</th><th>Co CCV</th><th>Un Peak</th><th>Un CCV</th><th>Total</th><th>APAC</th><th>EMEA/AM</th></tr></thead><tbody id="s3_tbl"></tbody></table></div>
+  <div class="sh"><div class="sh-title">인사이트</div><div class="pill blue">S3</div></div>
+  <div class="insight-grid">
+    <div class="insight-card" style="border-left-color:#4ade80"><div class="insight-label" style="color:#16a34a">D3 역대 최고</div><div class="insight-body">Nimo TV 5채널 합류로 D3 Peak <strong>201,661</strong>. VN Co-Str 다변화 성공.</div></div>
+    <div class="insight-card" style="border-left-color:#38bdf8"><div class="insight-label" style="color:#0284c7">요일 효과</div><div class="insight-body">D1(금)→D2(토)+43%→D3(일)+101.6%. 상승분 98.2%가 기존 채널 뷰 증가.</div></div>
+    <div class="insight-card" style="border-left-color:#fb923c"><div class="insight-label" style="color:#c2410c">CigaretteS TV</div><div class="insight-body">현장 방문 포맷으로 TH 시청자 접근. 새로운 콘텐츠 형식으로 APAC 다변화 기여.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PAGE: APPENDIX
+════════════════════════════════════════════════ -->
+<div class="page" id="page-ap">
+  <div class="eyebrow">PGS Circuit 1 · Appendix</div>
+  <h1 class="page-title">채널 리스트 <span>전체</span></h1>
+  <p class="page-sub">시리즈별 통합 · Peak 최고값 기준 정렬 · Co-Streamer (계약) + Unofficial (자발)</p>
+  <p class="page-warn">⚠ Unofficial 수치가 높은 채널은 향후 파트너십 검토 참고용</p>
+  <div class="divider"></div>
+  <div class="ap-tabs">
+    <button class="ap-tab on"  onclick="apTab('S1','co')">S1 Co-Streamer</button>
+    <button class="ap-tab"     onclick="apTab('S1','un')">S1 Unofficial</button>
+    <button class="ap-tab"     onclick="apTab('S2','co')">S2 Co-Streamer</button>
+    <button class="ap-tab"     onclick="apTab('S2','un')">S2 Unofficial</button>
+    <button class="ap-tab"     onclick="apTab('S3','co')">S3 Co-Streamer</button>
+    <button class="ap-tab"     onclick="apTab('S3','un')">S3 Unofficial</button>
+  </div>
+  <div class="ap-table-wrap">
+    <table><thead><tr><th>#</th><th>채널</th><th>언어</th><th>지역</th><th>플랫폼</th><th>Peak Viewers</th></tr></thead>
+    <tbody id="ap_body"></tbody></table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+/* ── 데이터 ─────────────────────────────────────────
+   수치 수정 시 여기만 변경하세요
+──────────────────────────────────────────────── */
+var SD = {
+  S1: [
+    {s:'Group Stage',    cp:7460,  cc:3120,  up:12046, uc:5880,  t:19506,  a:12480,  e:5680,  k:1346},
+    {s:'Winners Stage',  cp:7532,  cc:4210,  up:29454, uc:14200, t:36986,  a:24810,  e:11240, k:936},
+    {s:'Survival Stage', cp:31744, cc:20188, up:18327, uc:11561, t:50071,  a:36924,  e:12341, k:803},
+    {s:'Final D1',       cp:36917, cc:25490, up:51232, uc:28032, t:88149,  a:38263,  e:48539, k:1316},
+    {s:'Final D2',       cp:40327, cc:27818, up:14737, uc:9275,  t:55064,  a:43057,  e:11020, k:987}
+  ],
+  S2: [
+    {s:'Winners Stage',  cp:38642, cc:27880, up:11794, uc:8452,  t:50436,  a:41483,  e:11365, k:407},
+    {s:'Survival Stage', cp:7326,  cc:5856,  up:4452,  uc:3023,  t:11778,  a:1888,   e:9677,  k:213},
+    {s:'Final D1',       cp:48885, cc:31604, up:16803, uc:10104, t:65688,  a:49925,  e:13866, k:1897},
+    {s:'Final D2',       cp:74119, cc:40860, up:22854, uc:13049, t:96973,  a:82277,  e:13366, k:1330}
+  ],
+  S3: [
+    {s:'Survival Stage', cp:7953,  cc:5980,  up:12254, uc:8028,  t:20207,  a:13480,  e:5810,  k:917},
+    {s:'Final D1',       cp:49588, cc:35130, up:20259, uc:12762, t:69847,  a:58338,  e:10788, k:721},
+    {s:'Final D2',       cp:79334, cc:40024, up:20723, uc:14426, t:100057, a:88439,  e:10591, k:1027},
+    {s:'Final D3',       cp:171055,cc:108836,up:30606, uc:37433, t:201661, a:189002, e:11552, k:1107}
+  ]
+};
+var FA = {
+  S1: {cp:38622, cc:26655, up:32984, t:71606,  a:40660,  e:29795},
+  S2: {cp:61502, cc:36232, up:19828, t:81330,  a:66101,  e:13616},
+  S3: {cp:99992, cc:61330, up:23862, t:123855, a:111612, e:10828}
+};
+
+/* ── 채널 명단 ──────────────────────────────────────
+   채널 추가/삭제 시 여기만 변경하세요
+──────────────────────────────────────────────── */
+var CH = {
+  'S1_Group Stage':    {co:['Lâm Đình Xưa','Pokomolodoy','MiTH','makataO','droogtv','iBakhmet','glooms','Heawin','왓구홍길동','j4nku2off','badboyy2k','ThugFaasT','plyplypp','해묵'],   un:['ccinextt','Himass','barisg','500BROS PUBG VN','Nhiim','TanVuu','kerimyaman','Delwyn']},
+  'S1_Winners Stage':  {co:['Lâm Đình Xưa','Pokomolodoy','MiTH','glooms','iBakhmet','Heawin','왓구홍길동','droogtv','makataO','ThugFaasT','해묵'],                                       un:['ccinextt','Himass','barisg','Nhiim','TanVuu','kerimyaman']},
+  'S1_Survival Stage': {co:['Lâm Đình Xưa','Pokomolodoy','MiTH','makataO','droogtv','iBakhmet','glooms','Heawin','왓구홍길동','해묵'],                                                    un:['Himass','barisg','500BROS','Nhiim','TanVuu','kerimyaman']},
+  'S1_Final D1':       {co:['Lâm Đình Xưa','Pokomolodoy','MiTH','makataO','droogtv','iBakhmet','glooms','Heawin','왓구홍길동','badboyy2k','ThugFaasT','lauraa','Corky','plyplypp','해묵'],un:['ccinextt','Himass','barisg','Nhiim','TanVuu','kerimyaman','Delwyn']},
+  'S1_Final D2':       {co:['Lâm Đình Xưa','Pokomolodoy','makataO','droogtv','iBakhmet','glooms','Heawin','왓구홍길동','badboyy2k','ThugFaasT','lauraa','Corky','plyplypp','해묵'],       un:['Himass','Nhiim','TanVuu','kerimyaman','Delwyn']},
+  'S2_Winners Stage':  {co:['TuI TEN BO','Lâm Đình Xưa','Pokomolodoy','MinORu','iBakhmet','Chip Gaming','droogtv','makataO','MiTH','Heawin','ThugFaasT','glooms','왓구홍길동'],          un:['Himass','Nhiim','TanVuu','kerimyaman','DiTi','Delwyn']},
+  'S2_Survival Stage': {co:['Pokomolodoy','iBakhmet','Heawin','droogtv','makataO','ThugFaasT','왓구홍길동'],                                                                              un:['Himass','kerimyaman','TanVuu','Zest','xmpl']},
+  'S2_Final D1':       {co:['TuI TEN BO','Lâm Đình Xưa','Pokomolodoy','MinORu','iBakhmet','Chip Gaming','droogtv','makataO','MiTH','Heawin','ThugFaasT','glooms','왓구홍길동'],          un:['Himass','Nhiim','TanVuu','kerimyaman','DiTi','Delwyn','xmpl']},
+  'S2_Final D2':       {co:['TuI TEN BO','Lâm Đình Xưa','Pokomolodoy','MinORu','iBakhmet','Chip Gaming','droogtv','makataO','MiTH','Heawin','ThugFaasT','glooms','왓구홍길동'],          un:['Himass','Nhiim','TanVuu','kerimyaman','DiTi','Delwyn','xmpl']},
+  'S3_Survival Stage': {co:['Pokomolodoy','Chip Gaming','iBakhmet','droogtv','Heawin','MiTH','왓구홍길동'],                                                                              un:['devzxje','Nhiim','TanVuu','kerimyaman','Lynx']},
+  'S3_Final D1':       {co:['TuI TEN BO','Pokomolodoy','Chip Gaming','CigaretteS TV','makataO','droogtv','iBakhmet','Heawin','MiTH','ThugFaasT','왓구홍길동','glooms','해묵'],            un:['devzxje','Nhiim','TanVuu','kerimyaman','Lynx','Ezqelusia']},
+  'S3_Final D2':       {co:['TuI TEN BO','Pokomolodoy','Chip Gaming','CigaretteS TV','makataO','droogtv','iBakhmet','Heawin','MiTH','ThugFaasT','왓구홍길동','glooms','해묵'],            un:['devzxje','Nhiim','TanVuu','kerimyaman','Lynx','Ezqelusia','DiTi']},
+  'S3_Final D3':       {co:['TuI TEN BO','2272219(Nimo)','8666855(Nimo)','798181775(Nimo)','Potm(Nimo)','56738524(Nimo)','Pokomolodoy','Chip Gaming','CigaretteS TV','makataO','droogtv','iBakhmet','Heawin','MiTH','ThugFaasT','왓구홍길동','glooms','해묵','badboyy2k'], un:['Himass','devzxje','Nhiim','TanVuu','kerimyaman','Lynx','Ezqelusia','SBTC KIT','TheAnh96']}
+};
+
+/* ── Appendix 채널 리스트 ──────────────────────────
+   채널 추가 형식: ['이름','언어코드','지역','플랫폼',Peak수치]
+──────────────────────────────────────────────── */
+var AP = {
+  S1: {
+    co: [['Lâm Đình Xưa','VN','APAC','YouTube',30123],['Pokomolodoy','RU','EMEA/AM','Twitch',5210],['MiTH','TH','APAC','YouTube',1121],['makataO','RU','EMEA/AM','Twitch',685],['droogtv','UA','EMEA/AM','Twitch',684],['iBakhmet','RU','EMEA/AM','Twitch',461],['glooms','TH','APAC','Twitch',446],['Heawin','DE','EMEA/AM','Twitch',425],['왓구홍길동','KR','KR','CHZZK/SOOP',344],['j4nku2off','TH','APAC','Twitch',320],['badboyy2k','EN','EMEA/AM','Twitch',302],['ThugFaasT','PT','EMEA/AM','Twitch',291],['lauraa','EN','EMEA/AM','Twitch',180],['Corky','EN','EMEA/AM','Twitch',155],['plyplypp','TH','APAC','Twitch',136],['해묵','KR','KR','SOOP',124],['323','KR','KR','SOOP',43],['수디수디이','KR','KR','SOOP',35],['도지유','KR','KR','SOOP',19],['행복플랜♥','KR','KR','SOOP',16],['뚜랑','KR','KR','CHZZK',15]],
+    un: [['ccinextt','TR','EMEA/AM','kick.com',38708],['Himass','VN','APAC','YouTube',9169],['barisg','TR','EMEA/AM','kick.com',8384],['500BROS PUBG VN','VN','APAC','YouTube',7619],['Nhiim','VN','APAC','YouTube',1815],['TanVuu','VN','APAC','YouTube',1505],['kerimyaman','TR','EMEA/AM','kick.com',834],['zuluxxman','DE','EMEA/AM','Twitch',588],['Delwyn','VN','APAC','YouTube',425],['StannnL','VN','APAC','YouTube',304],['xmpl','RU','EMEA/AM','YouTube',239],['j0niq','RU','EMEA/AM','Twitch',206]]
+  },
+  S2: {
+    co: [['TuI TEN BO','VN','APAC','YouTube',62300],['Lâm Đình Xưa','VN','APAC','YouTube',30208],['Pokomolodoy','RU','EMEA/AM','Twitch',5960],['MinORu','TH','APAC','YouTube',1359],['iBakhmet','RU','EMEA/AM','Twitch',985],['Chip Gaming','VN','APAC','YouTube',899],['droogtv','UA','EMEA/AM','Twitch',850],['makataO','RU','EMEA/AM','Twitch',729],['MiTH','TH','APAC','YouTube',585],['Heawin','DE','EMEA/AM','Twitch',515],['ThugFaasT','PT','EMEA/AM','Twitch',346],['glooms','TH','APAC','Twitch',306],['왓구홍길동','KR','KR','CHZZK/SOOP',245],['j4nku2off','TH','APAC','Twitch',195],['badboyy2k','AR','EMEA/AM','Twitch',191],['plyplypp','TH','APAC','Twitch',74],['해묵','KR','KR','SOOP',39],['수디수디이','KR','KR','SOOP',32],['도지유','KR','KR','SOOP',24],['뚜랑','KR','KR','CHZZK',14],['행복플랜♥','KR','KR','SOOP',14]],
+    un: [['Himass','VN','APAC','YouTube',14860],['Nhiim','VN','APAC','YouTube',1399],['kerimyaman','TR','EMEA/AM','kick.com',722],['TanVuu','VN','APAC','YouTube',679],['POKAMOLODOY','RU','EMEA/AM','YouTube',549],['zuluxxman','DE','EMEA/AM','Twitch',458],['DiTi','VN','APAC','YouTube',414],['Delwyn','VN','APAC','YouTube',411],['StannnL','VN','APAC','YouTube',304],['Zest','VN','APAC','YouTube',273],['xmpl','RU','EMEA/AM','YouTube',239],['j0niq','RU','EMEA/AM','Twitch',206]]
+  },
+  S3: {
+    co: [['TuI TEN BO','VN','APAC','YouTube',68928],['2272219(Nimo TV)','VN','APAC','Nimo TV',48918],['8666855(Nimo TV)','VN','APAC','Nimo TV',17935],['798181775(Nimo TV)','VN','APAC','Nimo TV',14676],['Potm/2920177(Nimo)','VN','APAC','Nimo TV',13769],['56738524(Nimo TV)','VN','APAC','Nimo TV',11227],['Pokomolodoy','RU','EMEA/AM','Twitch',5905],['Chip Gaming','VN','APAC','YouTube',2698],['CigaretteS TV','TH','APAC','YouTube',1708],['makataO','RU','EMEA/AM','Twitch',923],['droogtv','UA','EMEA/AM','Twitch',796],['MinORu','TH','APAC','YouTube',639],['iBakhmet','RU','EMEA/AM','Twitch',553],['Heawin','DE','EMEA/AM','Twitch',493],['MiTH','TH','APAC','YouTube',430],['ThugFaasT','PT','EMEA/AM','Twitch',277],['왓구홍길동','KR','KR','CHZZK/SOOP',252],['glooms','TH','APAC','Twitch',250],['해묵','KR','KR','SOOP',171],['badboyy2k','AR','EMEA/AM','Twitch',168],['j4nku2off','TH','APAC','Twitch',157],['Corky','EN','EMEA/AM','Twitch',116],['323','KR','KR','SOOP',86],['도지유','KR','KR','SOOP',85],['당근카렌','KR','KR','CHZZK',79],['뚜랑','KR','KR','CHZZK',55],['수디수디이','KR','KR','SOOP',43],['행복플랜♥','KR','KR','SOOP',24]],
+    un: [['Himass','VN','APAC','YouTube',13359],['devzxje','VN','APAC','YouTube',5232],['Nhiim','VN','APAC','YouTube',4663],['TanVuu','VN','APAC','YouTube',3646],['kerimyaman','TR','EMEA/AM','kick.com',1083],['Lynx','VN','APAC','YouTube',984],['Ezqelusia','TH','APAC','YouTube',905],['SBTC KIT','VN','APAC','YouTube',763],['TheAnh96','VN','APAC','YouTube',739],['noctisak47','TH','APAC','Twitch',737],['JJaz','TH','APAC','YouTube',660],['POKAMOLODOY','RU','EMEA/AM','YouTube',543],['zuluxxman','DE','EMEA/AM','Twitch',393],['tleod1818','KR','KR','SOOP',366],['DiTi','VN','APAC','YouTube',349],['ThugFaasT','PT','EMEA/AM','YouTube',305],['Delwyn','VN','APAC','YouTube',294],['j0niq','RU','EMEA/AM','Twitch',287],['StannnL','VN','APAC','YouTube',249]]
+  }
+};
+
+/* ══════════════════════════════════════════════
+   이하 로직 — 수정 불필요
+══════════════════════════════════════════════ */
+var charts = {}, drawn = {};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('on'); });
+  document.getElementById('page-'+id).classList.add('on');
+  var btns = document.querySelectorAll('.nav-btn');
+  for (var i=0; i<btns.length; i++) {
+    if (btns[i].getAttribute('onclick') === "showPage('"+id+"')") btns[i].classList.add('on');
+  }
+  setTimeout(function(){ drawCharts(id); }, 80);
+}
+
+function toggleNote(hdr) {
+  var body = hdr.nextElementSibling;
+  var tog = hdr.querySelector('.ch-note-toggle');
+  body.classList.toggle('open');
+  tog.textContent = body.classList.contains('open') ? '▴ 접기' : '▾ 펼치기';
+}
+
+function apTab(s, t) {
+  document.querySelectorAll('.ap-tab').forEach(function(b){ b.classList.remove('on'); });
+  var btns = document.querySelectorAll('.ap-tab');
+  for (var i=0; i<btns.length; i++) {
+    if (btns[i].getAttribute('onclick') === "apTab('"+s+"','"+t+"')") btns[i].classList.add('on');
+  }
+  var list = AP[s][t];
+  var rb = {'APAC':'badge-apac','EMEA/AM':'badge-emea','KR':'badge-kr'};
+  var body = document.getElementById('ap_body');
+  body.innerHTML = '';
+  list.forEach(function(r, i) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+(i+1)+'</td>'
+      +'<td style="color:var(--text);font-weight:500">'+r[0]+'</td>'
+      +'<td>'+r[1]+'</td>'
+      +'<td><span class="badge '+(rb[r[2]]||'badge-kr')+'">'+r[2]+'</span></td>'
+      +'<td>'+r[3]+'</td>'
+      +'<td class="num" style="color:var(--accent)">'+r[4].toLocaleString()+'</td>';
+    body.appendChild(tr);
+  });
+}
+
+function chNoteHtml(key) {
+  var ch = CH[key]; if (!ch) return '';
+  var co = ch.co.map(function(n){ return '<span class="tag-co">'+n+'</span>'; }).join('');
+  var un = ch.un.map(function(n){ return '<span class="tag-un">'+n+'</span>'; }).join('');
+  return '<div style="margin-bottom:6px"><div style="font-size:10px;color:#0ea5e9;margin-bottom:3px">Co-Streamer ('+ch.co.length+')</div><div class="ch-tags">'+co+'</div></div>'
+       + '<div><div style="font-size:10px;color:#f97316;margin-bottom:3px">Unofficial ('+ch.un.length+')</div><div class="ch-tags">'+un+'</div></div>';
+}
+
+function fillChNotes(series) {
+  var stages = SD[series].map(function(d){ return d.s; });
+  var html = stages.map(function(st) {
+    return '<div class="ch-stage-block"><div class="ch-stage-name">'+st+'</div>'+chNoteHtml(series+'_'+st)+'</div>';
+  }).join('');
+  var pa = document.getElementById(series.toLowerCase()+'_ch_peak_body');
+  var ca = document.getElementById(series.toLowerCase()+'_ch_ccv_body');
+  if (pa) pa.innerHTML = html;
+  if (ca) ca.innerHTML = html;
+}
+
+function fillTbl(ser, id) {
+  var tb = document.getElementById(id); if (!tb) return;
+  tb.innerHTML = '';
+  SD[ser].forEach(function(d) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+d.s+'</td>'
+      +'<td class="num">'+d.cp.toLocaleString()+'</td>'
+      +'<td>'+d.cc.toLocaleString()+'</td>'
+      +'<td class="num">'+d.up.toLocaleString()+'</td>'
+      +'<td>'+d.uc.toLocaleString()+'</td>'
+      +'<td class="num" style="color:var(--accent)">'+d.t.toLocaleString()+'</td>'
+      +'<td style="color:#16a34a">'+d.a.toLocaleString()+'</td>'
+      +'<td style="color:#be185d">'+d.e.toLocaleString()+'</td>';
+    tb.appendChild(tr);
+  });
+  var f = FA[ser], avg = document.createElement('tr'); avg.className = 'avg-row';
+  avg.innerHTML = '<td style="color:var(--accent)">Final 일평균</td>'
+    +'<td class="num">'+f.cp.toLocaleString()+'</td>'
+    +'<td>'+f.cc.toLocaleString()+'</td>'
+    +'<td class="num">'+f.up.toLocaleString()+'</td>'
+    +'<td></td>'
+    +'<td class="num" style="color:var(--accent)">'+f.t.toLocaleString()+'</td>'
+    +'<td style="color:#16a34a">'+f.a.toLocaleString()+'</td>'
+    +'<td style="color:#be185d">'+f.e.toLocaleString()+'</td>';
+  tb.appendChild(avg);
+}
+
+function fillOvTbl() {
+  var tb = document.getElementById('ov_tbl'); if (!tb) return;
+  tb.innerHTML = '';
+  var sc = {S1:'var(--c-s1)',S2:'var(--c-s2)',S3:'var(--c-s3)'};
+  ['S1','S2','S3'].forEach(function(ser) {
+    SD[ser].forEach(function(d, i) {
+      var tr = document.createElement('tr');
+      var serCell = i===0 ? '<span style="font-weight:600;color:'+sc[ser]+'">'+ser+'</span>' : '';
+      tr.innerHTML = '<td>'+serCell+'</td><td>'+d.s+'</td>'
+        +'<td>'+d.cp.toLocaleString()+'</td><td>'+d.cc.toLocaleString()+'</td>'
+        +'<td>'+d.up.toLocaleString()+'</td><td>'+d.uc.toLocaleString()+'</td>'
+        +'<td class="num" style="color:var(--accent)">'+d.t.toLocaleString()+'</td>'
+        +'<td style="color:#16a34a">'+d.a.toLocaleString()+'</td>'
+        +'<td style="color:#be185d">'+d.e.toLocaleString()+'</td>';
+      tb.appendChild(tr);
+    });
+    var f = FA[ser], avg = document.createElement('tr'); avg.className = 'avg-row';
+    avg.innerHTML = '<td></td><td style="color:var(--accent)">Final 일평균</td>'
+      +'<td>'+f.cp.toLocaleString()+'</td><td>'+f.cc.toLocaleString()+'</td>'
+      +'<td>'+f.up.toLocaleString()+'</td><td></td>'
+      +'<td class="num" style="color:var(--accent)">'+f.t.toLocaleString()+'</td>'
+      +'<td style="color:#16a34a">'+f.a.toLocaleString()+'</td>'
+      +'<td style="color:#be185d">'+f.e.toLocaleString()+'</td>';
+    tb.appendChild(avg);
+  });
+}
+
+/* 차트 공통 옵션 */
+function gOpts(showLeg) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: showLeg !== false,
+        labels: { color:'rgba(255,255,255,.5)', boxWidth:8, padding:10, font:{size:10} }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0,0,0,.85)',
+        titleColor: '#fff', bodyColor: 'rgba(255,255,255,.75)',
+        padding: 8,
+        callbacks: { label: function(c){ return ' '+c.dataset.label+': '+c.raw.toLocaleString(); } }
+      }
+    },
+    scales: {
+      x: { grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'rgba(255,255,255,.4)',font:{size:10}} },
+      y: { grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'rgba(255,255,255,.4)',font:{size:10},callback:function(v){return v>=1000?Math.round(v/1000)+'K':v;}}, beginAtZero:true }
+    }
+  };
+}
+function dBar(lb, data, c) { return {label:lb, data:data, backgroundColor:c+'88', borderColor:c, borderWidth:1, borderRadius:2}; }
+function dLine(lb, data, c, dash) { return {label:lb, data:data, borderColor:c, backgroundColor:dash?'transparent':c+'15', borderWidth:dash?1.5:2, borderDash:dash?[4,3]:[], pointRadius:4, pointBackgroundColor:c, tension:.3, fill:!dash}; }
+
+function mkChart(id, type, data, opts) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  var el = document.getElementById(id); if (!el) return;
+  charts[id] = new Chart(el, {type:type, data:data, options:opts});
+}
+
+function drawCharts(pg) {
+  if (drawn[pg]) return;
+  drawn[pg] = true;
+  var allL = SD.S1.map(function(d){return d.s;}).concat(SD.S2.map(function(d){return d.s;})).concat(SD.S3.map(function(d){return d.s;}));
+  function mk(ser, key) {
+    var a = new Array(allL.length).fill(null);
+    var off = ser==='S1'?0:ser==='S2'?5:9;
+    SD[ser].forEach(function(d,i){ a[off+i]=d[key]; });
+    return a;
+  }
+  var s3f = SD.S3.filter(function(d){ return d.s.indexOf('Final')>=0; });
+
+  if (pg==='ov') {
+    mkChart('c_ov_peak','bar',{labels:['S1 Final','S2 Final','S3 Final'],datasets:[dBar('Co-Str',[38622,61502,99992],'#38bdf8'),dBar('Unofficial',[32984,19828,23862],'#fb923c')]},gOpts());
+    mkChart('c_ov_ccv','bar',{labels:['S1 Final','S2 Final','S3 Final'],datasets:[dBar('Co-Str',[26655,36232,61330],'#38bdf8'),dBar('Unofficial',[18654,11577,24141],'#fb923c')]},gOpts());
+    mkChart('c_ov_reg','line',{labels:['S1','S2','S3'],datasets:[dLine('APAC',[40660,66101,111612],'#4ade80'),dLine('EMEA/AM',[29795,13616,10828],'#f472b6'),dLine('KR',[1151,1613,964],'#94a3b8'),dLine('전체',[71606,81330,123855],'rgba(255,255,255,.6)',true)]},gOpts());
+  } else if (pg==='fl') {
+    var flO = gOpts(); flO.scales.x.ticks.maxRotation = 45;
+    mkChart('c_fl_peak','line',{labels:allL,datasets:[dLine('S1',mk('S1','t'),'#6366f1'),dLine('S2',mk('S2','t'),'#a78bfa'),dLine('S3',mk('S3','t'),'#f5a623')]},flO);
+    mkChart('c_fl_ccv','line',{labels:allL,datasets:[dLine('S1',mk('S1','cc'),'#6366f1'),dLine('S2',mk('S2','cc'),'#a78bfa'),dLine('S3',mk('S3','cc'),'#f5a623')]},flO);
+    mkChart('c_fl_co','bar',{labels:['S1 Final','S2 Final','S3 Final'],datasets:[dBar('Co-Str',[38622,61502,99992],'#38bdf8')]},gOpts(false));
+    mkChart('c_fl_un','bar',{labels:['S1 Final','S2 Final','S3 Final'],datasets:[dBar('Unofficial',[32984,19828,23862],'#fb923c')]},gOpts(false));
+  } else if (pg==='s1') {
+    var lb1 = SD.S1.map(function(d){return d.s;});
+    mkChart('c_s1_peak','bar',{labels:lb1,datasets:[dBar('Co-Str',SD.S1.map(function(d){return d.cp;}),'#38bdf8'),dBar('Unofficial',SD.S1.map(function(d){return d.up;}),'#fb923c')]},gOpts());
+    mkChart('c_s1_ccv','bar',{labels:lb1,datasets:[dBar('Co-Str',SD.S1.map(function(d){return d.cc;}),'#38bdf8'),dBar('Unofficial',SD.S1.map(function(d){return d.uc;}),'#fb923c')]},gOpts());
+  } else if (pg==='s2') {
+    var lb2 = SD.S2.map(function(d){return d.s;});
+    mkChart('c_s2_peak','bar',{labels:lb2,datasets:[dBar('Co-Str',SD.S2.map(function(d){return d.cp;}),'#38bdf8'),dBar('Unofficial',SD.S2.map(function(d){return d.up;}),'#fb923c')]},gOpts());
+    mkChart('c_s2_ccv','bar',{labels:lb2,datasets:[dBar('Co-Str',SD.S2.map(function(d){return d.cc;}),'#38bdf8'),dBar('Unofficial',SD.S2.map(function(d){return d.uc;}),'#fb923c')]},gOpts());
+  } else if (pg==='s3') {
+    var lb3 = s3f.map(function(d){return d.s;});
+    mkChart('c_s3_peak','line',{labels:lb3,datasets:[dLine('Co-Str',s3f.map(function(d){return d.cp;}),'#38bdf8'),dLine('Unofficial',s3f.map(function(d){return d.up;}),'#fb923c')]},gOpts());
+    mkChart('c_s3_ccv','line',{labels:lb3,datasets:[dLine('Co-Str',s3f.map(function(d){return d.cc;}),'#38bdf8'),dLine('Unofficial',s3f.map(function(d){return d.uc;}),'#fb923c')]},gOpts());
+  }
+}
+
+/* ── 초기화 ─────────────────────────────────────── */
+fillOvTbl();
+fillTbl('S1','s1_tbl'); fillTbl('S2','s2_tbl'); fillTbl('S3','s3_tbl');
+fillChNotes('S1'); fillChNotes('S2');
+(function() {
+  var stgs = ['Final D1','Final D2','Final D3'];
+  var html = stgs.map(function(st){
+    return '<div class="ch-stage-block"><div class="ch-stage-name">'+st+'</div>'+chNoteHtml('S3_'+st)+'</div>';
+  }).join('');
+  var pa = document.getElementById('s3_ch_peak_body');
+  var ca = document.getElementById('s3_ch_ccv_body');
+  if (pa) pa.innerHTML = html;
+  if (ca) ca.innerHTML = html;
+})();
+apTab('S1','co');
+setTimeout(function(){ drawCharts('ov'); }, 100);
+</script>
+</body>
+</html>
